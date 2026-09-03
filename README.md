@@ -66,35 +66,31 @@ DECISION: ALLOW | BLOCK | DELAY | MERGE
 
 ## Quick Start
 
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+ (for local frontend development)
-- Python 3.11+ (for local backend development)
-
-### Run with Docker Compose
+**🚀 Recommended: Use Docker (no local setup needed!)**
 
 ```bash
 # Start all services
 docker-compose up -d
 
+# Check status
+docker-compose ps
+
 # View logs
-docker-compose logs -f
+docker-compose logs -f backend
 
 # Stop services
 docker-compose down
 ```
 
-**Services:**
-- Backend API: http://localhost:8000
-- Frontend: http://localhost:3000
-- PostgreSQL: localhost:5432
-- Redis: localhost:6379
+**Access Services:**
+- 🌐 Backend API: http://localhost:8000
+- 🎨 Frontend: http://localhost:3000
+- 📚 API Docs: http://localhost:8000/docs
+- 📖 ReDoc: http://localhost:8000/redoc
 
-### API Documentation
+**That's it! No Python/Node installation needed with Docker.**
 
-Once running, visit:
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
+For detailed setup instructions (local development, troubleshooting), see [SETUP_GUIDE.md](SETUP_GUIDE.md)
 
 ### Local Development
 

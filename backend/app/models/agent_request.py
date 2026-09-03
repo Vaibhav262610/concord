@@ -38,9 +38,9 @@ class AgentRequest(Base):
     # Message content
     message = Column(Text, nullable=False)
     
-    # Request metadata
+    # Request metadata (renamed from 'metadata' to avoid SQLAlchemy reserved word)
     expires_at = Column(DateTime)
-    metadata = Column(JSONB, default=dict)
+    custom_metadata = Column(JSONB, default=dict)
     
     # Status
     status = Column(String(50), nullable=False, default="pending", index=True)  # pending, evaluated, expired

@@ -27,8 +27,8 @@ class Customer(Base):
     consent = Column(JSONB, nullable=False, default=dict)
     # Example: {"marketing": true, "transactional": true, "global_opt_out": false}
     
-    # Metadata
-    metadata = Column(JSONB, default=dict)  # Additional customer data
+    # Additional customer data (renamed from 'metadata' to avoid SQLAlchemy reserved word)
+    custom_metadata = Column(JSONB, default=dict)
     
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

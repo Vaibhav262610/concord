@@ -61,7 +61,7 @@ def upgrade() -> None:
         sa.Column('email', sa.String(length=255), nullable=True),
         sa.Column('phone', sa.String(length=50), nullable=True),
         sa.Column('consent', postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('custom_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.Column('updated_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['merchant_id'], ['merchants.id'], ondelete='CASCADE'),
@@ -107,7 +107,7 @@ def upgrade() -> None:
         sa.Column('offer', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('message', sa.Text(), nullable=False),
         sa.Column('expires_at', sa.DateTime(), nullable=True),
-        sa.Column('metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column('custom_metadata', postgresql.JSONB(astext_type=sa.Text()), nullable=True),
         sa.Column('status', sa.String(length=50), nullable=False),
         sa.Column('created_at', sa.DateTime(), nullable=False),
         sa.ForeignKeyConstraint(['agent_id'], ['agents.id'], ondelete='CASCADE'),
@@ -116,9 +116,9 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint('id'),
         sa.UniqueConstraint('request_id')
     )
-    op.create_index('idx_agent_created', 'agent_requests', ['agent_id', 'created_at'], unique=False)
-    op.create_index('idx_customer_created', 'agent_requests', ['customer_id', 'created_at'], unique=False)
-    op.create_index('idx_status_created', 'agent_requests', ['status', 'created_at'], unique=False)
+    op.create_index('idx_request_agent_created', 'agent_requests', ['agent_id', 'created_at'], unique=False)
+    op.create_index('idx_request_customer_created', 'agent_requests', ['customer_id', 'created_at'], unique=False)
+    op.create_index('idx_request_status_created', 'agent_requests', ['status', 'created_at'], unique=False)
     op.create_index(op.f('ix_agent_requests_agent_id'), 'agent_requests', ['agent_id'], unique=False)
     op.create_index(op.f('ix_agent_requests_created_at'), 'agent_requests', ['created_at'], unique=False)
     op.create_index(op.f('ix_agent_requests_customer_id'), 'agent_requests', ['customer_id'], unique=False)
@@ -199,8 +199,8 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(['decision_id'], ['decisions.id'], ondelete='CASCADE'),
         sa.PrimaryKeyConstraint('id')
     )
-    op.create_index('idx_customer_created', 'audit_logs', ['customer_id', 'created_at'], unique=False)
-    op.create_index('idx_entity_created', 'audit_logs', ['entity_type', 'entity_id', 'created_at'], unique=False)
+    op.create_index('idx_audit_customer_created', 'audit_logs', ['customer_id', 'created_at'], unique=False)
+    op.create_index('idx_audit_entity_created', 'audit_logs', ['entity_type', 'entity_id', 'created_at'], unique=False)
     op.create_index(op.f('ix_audit_logs_action'), 'audit_logs', ['action'], unique=False)
     op.create_index(op.f('ix_audit_logs_created_at'), 'audit_logs', ['created_at'], unique=False)
     op.create_index(op.f('ix_audit_logs_customer_id'), 'audit_logs', ['customer_id'], unique=False)
