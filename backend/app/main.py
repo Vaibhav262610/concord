@@ -6,10 +6,17 @@ Main entry point for the API server.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 import logging
 
 from app.config import settings
 from app.database import engine, Base
+from app.exceptions import (
+    concord_exception_handler,
+    validation_exception_handler,
+    general_exception_handler,
+    ConcordException
+)
 
 # Configure logging
 logging.basicConfig(
@@ -35,6 +42,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Exception handlers
+app.add_exception_handler(ConcordException, concord_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
 
 @app.on_event("startup")
@@ -73,7 +85,7 @@ async def health_check():
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request, exc):
-    """Global exception handler"""
+    """Global exception handler - should not be reached due to app.add_exception_handler"""
     logger.error(f"Unhandled exception: {str(exc)}", exc_info=True)
     return JSONResponse(
         status_code=500,
@@ -86,15 +98,12 @@ async def global_exception_handler(request, exc):
     )
 
 
-# Import and include routers (will be added in later phases)
-# from app.routes import actions, agents, customers, decisions, policies, simulation, analytics
-# app.include_router(actions.router, prefix="/api/v1", tags=["actions"])
-# app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
-# app.include_router(customers.router, prefix="/api/v1", tags=["customers"])
-# app.include_router(decisions.router, prefix="/api/v1", tags=["decisions"])
-# app.include_router(policies.router, prefix="/api/v1", tags=["policies"])
-# app.include_router(simulation.router, prefix="/api/v1", tags=["simulation"])
-# app.include_router(analytics.router, prefix="/api/v1", tags=["analytics"])
+# Import and include routers
+from app.routes import actions, agents, decisions
+
+app.include_router(actions.router, prefix="/api/v1", tags=["actions"])
+app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
+app.include_router(decisions.router, prefix="/api/v1", tags=["decisions"])
 
 
 if __name__ == "__main__":
