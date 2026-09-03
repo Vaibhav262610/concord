@@ -34,13 +34,19 @@ class Settings(BaseSettings):
     # Merchant defaults (can be overridden per merchant)
     DEFAULT_DAILY_CONTACT_LIMIT: int = 3
     DEFAULT_MAX_DISCOUNT_PERCENT: int = 10
+    DEFAULT_ATTENTION_BUDGET_DAILY: int = 100  # Points per day
     
-    # Priority defaults
+    # Priority defaults (rule-based)
     DEFAULT_PRIORITY_PAYMENT_RECOVERY: int = 100
     DEFAULT_PRIORITY_SUBSCRIPTION_RECOVERY: int = 90
     DEFAULT_PRIORITY_CART_RECOVERY: int = 70
+    DEFAULT_PRIORITY_WIN_BACK: int = 40
     DEFAULT_PRIORITY_UPSELL: int = 30
     DEFAULT_PRIORITY_PROMOTION: int = 10
+    
+    # Business value weights (for combined scoring)
+    DEFAULT_PRIORITY_WEIGHT: float = 0.6  # 60% rule-based priority
+    DEFAULT_VALUE_WEIGHT: float = 0.4     # 40% business value
     
     class Config:
         env_file = ".env"
