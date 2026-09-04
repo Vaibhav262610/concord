@@ -20,22 +20,19 @@ wheels/
 .installed.cfg
 *.egg
 MANIFEST
-venv/
-env/
-ENV/
-.venv
+.pytest_cache/
+.coverage
+htmlcov/
 
-# FastAPI / Uvicorn
-*.log
-
-# Database
-*.db
-*.sqlite3
-
-# Environment variables
+# Environment
 .env
 .env.local
-.env.*.local
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
 # IDEs
 .vscode/
@@ -45,60 +42,38 @@ ENV/
 *~
 .DS_Store
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-
-# Node.js / Frontend
+# Node
 node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
-package-lock.json
+.next/
+out/
+.turbo
 
-# Next.js
-frontend/.next/
-frontend/out/
-frontend/build/
-frontend/.vercel
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
-
-# Docker
-*.pid
-*.seed
-*.pid.lock
-
-# Redis dump
-dump.rdb
-
-# Alembic
-alembic/versions/*.pyc
-
-# MacOS
-.DS_Store
-.AppleDouble
-.LSOverride
-
-# Windows
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Linux
-*~
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
 # Logs
-logs/
 *.log
+logs/
+
+# Docker
+.dockerignore
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
 
 # Temporary files
-tmp/
-temp/
 *.tmp
+*.bak
+*.swp

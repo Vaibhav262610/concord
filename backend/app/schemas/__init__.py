@@ -44,6 +44,19 @@ from app.schemas.conflict import (
     MergeRequest,
     MergeResult,
 )
+from app.schemas.customer import (
+    CustomerCreate,
+    CustomerUpdate,
+    CustomerResponse,
+    CustomerAnalytics,
+    CustomerStats,
+)
+from app.schemas.audit import (
+    AuditLogResponse,
+    AuditLogListResponse,
+    AuditLogStats,
+    AuditLogTimeline,
+)
 
 __all__ = [
     "AgentActionRequest",
@@ -76,4 +89,13 @@ __all__ = [
     "MergeRecommendationResponse",
     "MergeRequest",
     "MergeResult",
+    "CustomerCreate",
+    "CustomerUpdate",
+    "CustomerResponse",
+    "CustomerAnalytics",
+    "CustomerStats",
+    "AuditLogResponse",
+    "AuditLogListResponse",
+    "AuditLogStats",
+    "AuditLogTimeline",
 ]

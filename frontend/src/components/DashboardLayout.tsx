@@ -14,6 +14,7 @@ import {
   Menu,
   X,
   Zap,
+  UserCog,
 } from 'lucide-react';
 
 interface NavItem {
@@ -32,6 +33,11 @@ const navItems: NavItem[] = [
     href: '/dashboard/agents',
     label: 'Agents',
     icon: <Users className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/customers',
+    label: 'Customers',
+    icon: <UserCog className="w-5 h-5" />,
   },
   {
     href: '/dashboard/decisions',
