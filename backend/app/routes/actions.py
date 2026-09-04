@@ -58,8 +58,8 @@ async def submit_action_request(
     decision_service = DecisionService(db)
     
     try:
-        # Process request through gateway (includes arbitration)
-        agent_request, is_duplicate, decision = gateway.process_action_request(agent, request)
+        # Process request through gateway (includes arbitration + execution)
+        agent_request, is_duplicate, decision, execution = gateway.process_action_request(agent, request)
         
         # Build response
         response_data = {
@@ -75,6 +75,16 @@ async def submit_action_request(
             response_data["message"] = decision.message
         else:
             response_data["message"] = "Request received and queued for arbitration" if not is_duplicate else "Duplicate request (idempotent)"
+        
+        # Add execution info if available
+        if execution:
+            response_data["execution"] = {
+                "execution_id": str(execution.execution_id) if execution.execution_id else None,
+                "status": execution.status,
+                "channel": execution.channel,
+                "message": execution.message,
+                "metadata": execution.metadata
+            }
         
         # Return appropriate status code
         response_status = status.HTTP_200_OK if is_duplicate else status.HTTP_201_CREATED

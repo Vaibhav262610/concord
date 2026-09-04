@@ -19,6 +19,7 @@ from app.schemas.agent_request import AgentActionRequest
 from app.services.auth import check_agent_permission
 from app.services.arbitration import DecisionEngine, DecisionType
 from app.services.decision_service import DecisionService
+from app.services.execution_service import ExecutionService, ExecutionResult
 from app.exceptions import ValidationError as ConcordValidationError
 
 
@@ -37,6 +38,7 @@ class GatewayService:
         self.db = db
         self.decision_engine = DecisionEngine(db)
         self.decision_service = DecisionService(db)
+        self.execution_service = ExecutionService(db)
     
     def check_idempotency(self, request_id: str) -> Optional[AgentRequest]:
         """
@@ -281,20 +283,21 @@ class GatewayService:
     def run_arbitration(
         self,
         agent_request: AgentRequest
-    ) -> Tuple[DecisionType, Decision]:
+    ) -> Tuple[DecisionType, Decision, ExecutionResult]:
         """
-        Run arbitration engine on agent request
+        Run arbitration engine on agent request and execute if approved
         
         This is where CONCORD's core decision-making happens:
         - Checks consent, frequency, policy compliance
         - Calculates priority and business value scores
         - Makes ALLOW/BLOCK/DELAY decision
+        - Executes or queues based on decision
         
         Args:
             agent_request: Agent request to arbitrate
         
         Returns:
-            Tuple of (DecisionType, Decision record)
+            Tuple of (DecisionType, Decision record, ExecutionResult)
         """
         # Run decision engine
         decision_type, decision_details = self.decision_engine.make_decision(agent_request)
@@ -320,7 +323,13 @@ class GatewayService:
         # Log decision to audit trail
         self._log_decision(agent_request, decision)
         
-        return decision_type, decision
+        # Execute or queue based on decision
+        execution_result = self.execution_service.process_decision(agent_request, decision)
+        
+        # Log execution
+        self._log_execution(agent_request, decision, execution_result)
+        
+        return decision_type, decision, execution_result
     
     def _log_decision(
         self,
@@ -355,12 +364,47 @@ class GatewayService:
         self.db.add(audit_log)
         self.db.commit()
     
+    def _log_execution(
+        self,
+        agent_request: AgentRequest,
+        decision: Decision,
+        execution_result: ExecutionResult
+    ) -> None:
+        """
+        Create audit log for execution
+        
+        Args:
+            agent_request: Agent request
+            decision: Decision record
+            execution_result: Execution result
+        """
+        audit_log = AuditLog(
+            entity_type="execution",
+            entity_id=execution_result.execution_id or agent_request.id,
+            action=f"EXECUTION_{execution_result.status.upper()}",
+            details={
+                "request_id": str(agent_request.id),
+                "decision_id": str(decision.id),
+                "channel": execution_result.channel,
+                "status": execution_result.status,
+                "success": execution_result.success,
+                "message": execution_result.message,
+                "error": execution_result.error,
+                "metadata": execution_result.metadata
+            },
+            actor="system:execution_engine",
+            customer_id=agent_request.customer_id
+        )
+        
+        self.db.add(audit_log)
+        self.db.commit()
+    
     def process_action_request(
         self,
         agent: Agent,
         request: AgentActionRequest,
         run_arbitration: bool = True
-    ) -> Tuple[AgentRequest, bool, Optional[Decision]]:
+    ) -> Tuple[AgentRequest, bool, Optional[Decision], Optional[ExecutionResult]]:
         """
         Process an agent action request through the gateway
         
@@ -372,6 +416,7 @@ class GatewayService:
         5. Request persistence
         6. Audit logging
         7. Arbitration (if enabled)
+        8. Execution (if approved/delayed)
         
         Args:
             agent: Authenticated agent
@@ -379,10 +424,11 @@ class GatewayService:
             run_arbitration: Whether to run arbitration engine (default: True)
         
         Returns:
-            Tuple of (AgentRequest, is_duplicate, Decision)
+            Tuple of (AgentRequest, is_duplicate, Decision, ExecutionResult)
             - AgentRequest: Created or existing request
             - is_duplicate: True if this was a duplicate request (idempotent)
             - Decision: Arbitration decision (None if duplicate or arbitration disabled)
+            - ExecutionResult: Execution result (None if not executed)
         
         Raises:
             ValidationError: If validation fails
@@ -393,7 +439,14 @@ class GatewayService:
             # Idempotent - return existing request
             # Get existing decision if available
             existing_decision = self.decision_service.get_decision_by_request(existing_request.id)
-            return existing_request, True, existing_decision
+            # Get existing execution if available
+            existing_execution = self.execution_service.get_execution_status(existing_request.id)
+            execution_result = ExecutionResult(
+                success=True,
+                status=existing_execution.get("status") if existing_execution else "unknown",
+                message="Duplicate request - returning cached result"
+            ) if existing_execution else None
+            return existing_request, True, existing_decision, execution_result
         
         # Step 2: Validate agent permissions
         self.validate_agent_permissions(agent, request)
@@ -411,12 +464,13 @@ class GatewayService:
         # Step 6: Log to audit trail
         self.log_request_received(agent_request, agent)
         
-        # Step 7: Run arbitration if enabled
+        # Step 7 & 8: Run arbitration and execution if enabled
         decision = None
+        execution_result = None
         if run_arbitration:
-            decision_type, decision = self.run_arbitration(agent_request)
+            decision_type, decision, execution_result = self.run_arbitration(agent_request)
         
-        return agent_request, False, decision
+        return agent_request, False, decision, execution_result
     
     def get_agent_requests(
         self,
