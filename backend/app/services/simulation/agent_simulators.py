@@ -89,8 +89,9 @@ class PaymentRecoveryAgent(BaseAgentSimulator):
         if random.random() < 0.4:
             discount_value = random.randint(5, 15)
             request["offer"] = {
-                "discount_type": "PERCENTAGE",
-                "discount_value": discount_value,
+                "type": "DISCOUNT",
+                "value": discount_value,
+                "unit": "PERCENT",
             }
             request["message"] += f" Pay now and get {discount_value}% off!"
         
@@ -121,8 +122,8 @@ class MarketingAgent(BaseAgentSimulator):
         
         request = self._base_request(
             customer_id,
-            action="SEND_OFFER",
-            intent="MARKETING",
+            action="SEND_MESSAGE",  # Changed from SEND_OFFER to SEND_MESSAGE
+            intent="PROMOTION",  # Changed from MARKETING to match enum
             channel=channel,
             time_offset=time_offset
         )
@@ -136,17 +137,19 @@ class MarketingAgent(BaseAgentSimulator):
         
         # 70% chance of offering discount
         if random.random() < 0.7:
-            discount_types = ["PERCENTAGE", "FIXED"]
-            discount_type = random.choice(discount_types)
+            discount_type = random.choice(["PERCENT", "AMOUNT"])
             
-            if discount_type == "PERCENTAGE":
+            if discount_type == "PERCENT":
                 discount_value = random.randint(10, 30)
+                request["message"] += f" Get {discount_value}% off!"
             else:
-                discount_value = random.randint(5000, 50000)  # ₹50-500
+                discount_value = random.randint(50, 500)  # ₹50-500 (in rupees)
+                request["message"] += f" Get ₹{discount_value} off!"
             
             request["offer"] = {
-                "discount_type": discount_type,
-                "discount_value": discount_value,
+                "type": "DISCOUNT",
+                "value": discount_value,
+                "unit": discount_type,
             }
         
         return request
@@ -174,7 +177,7 @@ class SupportAgent(BaseAgentSimulator):
         request = self._base_request(
             customer_id,
             action="SEND_MESSAGE",
-            intent="SUPPORT",
+            intent="GENERAL",  # Changed from SUPPORT to match enum
             channel=channel,
             time_offset=time_offset
         )
@@ -218,7 +221,7 @@ class TransactionalAgent(BaseAgentSimulator):
         request = self._base_request(
             customer_id,
             action="SEND_MESSAGE",
-            intent="TRANSACTIONAL",
+            intent="GENERAL",  # Changed from TRANSACTIONAL to match enum
             channel=channel,
             time_offset=time_offset
         )

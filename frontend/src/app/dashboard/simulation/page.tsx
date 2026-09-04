@@ -17,6 +17,7 @@ export default function SimulationPage() {
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [result, setResult] = useState<SimulationResult | null>(null);
   const [error, setError] = useState<string>('');
+  const [simulationProgress, setSimulationProgress] = useState<string>('');
 
   useEffect(() => {
     loadScenarios();
@@ -53,6 +54,18 @@ export default function SimulationPage() {
     setIsRunning(true);
     setError('');
     setResult(null);
+    setSimulationProgress('Starting simulation...');
+
+    // Show progress updates
+    const progressInterval = setInterval(() => {
+      setSimulationProgress(prev => {
+        if (prev === 'Starting simulation...') return 'Processing customer requests...';
+        if (prev === 'Processing customer requests...') return 'Agents making decisions...';
+        if (prev === 'Agents making decisions...') return 'Executing actions...';
+        if (prev === 'Executing actions...') return 'Almost done...';
+        return 'Finalizing results...';
+      });
+    }, 10000); // Update every 10 seconds
 
     try {
       const data = await api.runSimulation({
@@ -63,9 +76,12 @@ export default function SimulationPage() {
         create_customers: true,
       });
       setResult(data);
+      setSimulationProgress('');
     } catch (err: any) {
-      setError(err.error?.message || 'Simulation failed');
+      setError(err.error?.message || err.message || 'Simulation failed');
+      setSimulationProgress('');
     } finally {
+      clearInterval(progressInterval);
       setIsRunning(false);
     }
   };
@@ -238,7 +254,7 @@ export default function SimulationPage() {
 
             {isRunning && (
               <span className="text-sm text-gray-600">
-                Processing {customerCount} customers with {getScenarioName(selectedScenario)} scenario...
+                {simulationProgress} (This may take up to {duration} seconds)
               </span>
             )}
           </div>
@@ -247,6 +263,21 @@ export default function SimulationPage() {
             <div className="flex items-center gap-2 text-red-600 bg-red-50 p-3 rounded-md">
               <AlertCircle className="h-4 w-4" />
               <span className="text-sm">{error}</span>
+            </div>
+          )}
+
+          {isRunning && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <div className="animate-spin h-5 w-5 border-2 border-blue-500 border-t-transparent rounded-full mt-0.5" />
+                <div className="flex-1">
+                  <p className="font-medium text-blue-900 text-sm">Simulation in Progress</p>
+                  <p className="text-blue-700 text-xs mt-1">{simulationProgress}</p>
+                  <p className="text-blue-600 text-xs mt-2">
+                    ⏱️ Expected duration: ~{duration} seconds | 👥 Processing {customerCount} customers
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </CardContent>

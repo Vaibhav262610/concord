@@ -4,16 +4,17 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { api, type DeliveryMetrics } from '@/lib/api';
-import { formatNumber, formatPercentage, getChannelIcon } from '@/lib/utils';
-import { Loader2, RefreshCw, TrendingUp, Send, CheckCircle2, XCircle } from 'lucide-react';
-import { BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend } from 'recharts';
+import { formatNumber, formatPercentage } from '@/lib/utils';
+import { Loader2, RefreshCw, TrendingUp, Send, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
-const COLORS = ['#10b981', '#3b82f6', '#8b5cf6', '#f59e0b', '#ef4444'];
+const COLORS = ['#10b981', '#ef4444', '#f59e0b', '#8b5cf6'];
 
 export default function MetricsPage() {
   const [metrics, setMetrics] = useState<DeliveryMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadMetrics();
@@ -25,12 +26,14 @@ export default function MetricsPage() {
   async function loadMetrics(silent = false) {
     if (!silent) setLoading(true);
     else setRefreshing(true);
+    setError(null);
 
     try {
       const data = await api.getDeliveryMetrics();
       setMetrics(data);
     } catch (error) {
       console.error('Failed to load metrics:', error);
+      setError('Failed to load metrics data');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -45,6 +48,18 @@ export default function MetricsPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96">
+        <p className="text-red-500 mb-4">{error}</p>
+        <Button onClick={() => loadMetrics()}>
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
   if (!metrics) {
     return (
       <div className="flex items-center justify-center h-96">
@@ -54,19 +69,12 @@ export default function MetricsPage() {
   }
 
   // Prepare chart data
-  const channelData = Object.entries(metrics.by_channel).map(([channel, data]) => ({
-    channel,
-    total: data.total,
-    sent: data.sent,
-    delivered: data.delivered,
-    failed: data.failed,
-    successRate: data.success_rate,
-  }));
-
-  const statusData = Object.entries(metrics.by_status).map(([status, count]) => ({
-    name: status,
-    value: count,
-  }));
+  const statusData = [
+    { name: 'Delivered', value: metrics.delivered, color: '#10b981' },
+    { name: 'Failed', value: metrics.failed, color: '#ef4444' },
+    { name: 'Bounced', value: metrics.bounced, color: '#f59e0b' },
+    { name: 'Sent (Pending)', value: metrics.sent - metrics.delivered - metrics.failed, color: '#8b5cf6' },
+  ].filter(item => item.value > 0);
 
   return (
     <div className="space-y-6">
@@ -103,14 +111,14 @@ export default function MetricsPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">Delivery Rate</CardTitle>
             <TrendingUp className="h-4 w-4 text-green-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatPercentage(metrics.success_rate)}
+              {formatPercentage(metrics.delivery_rate)}
             </div>
-            <p className="text-xs text-muted-foreground">Overall delivery</p>
+            <p className="text-xs text-muted-foreground">Successfully delivered</p>
           </CardContent>
         </Card>
 
@@ -121,7 +129,7 @@ export default function MetricsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              {formatNumber(metrics.by_status['delivered'] || 0)}
+              {formatNumber(metrics.delivered)}
             </div>
             <p className="text-xs text-muted-foreground">Successful deliveries</p>
           </CardContent>
@@ -134,135 +142,120 @@ export default function MetricsPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              {formatNumber(metrics.by_status['failed'] || 0)}
+              {formatNumber(metrics.failed)}
             </div>
             <p className="text-xs text-muted-foreground">Failed deliveries</p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Channel Performance Bar Chart */}
-      {channelData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Channel Performance</CardTitle>
-            <CardDescription>Success rate by communication channel</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={channelData}>
-                  <XAxis dataKey="channel" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="delivered" fill="#10b981" name="Delivered" />
-                  <Bar dataKey="failed" fill="#ef4444" name="Failed" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Status Distribution Pie Chart */}
-      {statusData.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Status Distribution</CardTitle>
-            <CardDescription>Breakdown of execution statuses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={(entry) => `${entry.name}: ${entry.value}`}
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {statusData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Detailed Channel Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Detailed Channel Metrics</CardTitle>
-          <CardDescription>Comprehensive statistics for each channel</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-6">
-            {channelData.map((channel, index) => (
-              <div key={channel.channel} className="border-b border-gray-100 pb-6 last:border-0">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-3xl">{getChannelIcon(channel.channel)}</span>
-                    <div>
-                      <h3 className="text-lg font-semibold">{channel.channel}</h3>
-                      <p className="text-sm text-gray-500">
-                        {formatNumber(channel.total)} total executions
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {formatPercentage(channel.successRate)}
-                    </p>
-                    <p className="text-sm text-gray-500">Success Rate</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-blue-50 rounded-lg p-4 text-center">
-                    <p className="text-sm text-blue-600 font-medium mb-1">Sent</p>
-                    <p className="text-2xl font-bold text-blue-900">{formatNumber(channel.sent)}</p>
-                  </div>
-                  <div className="bg-green-50 rounded-lg p-4 text-center">
-                    <p className="text-sm text-green-600 font-medium mb-1">Delivered</p>
-                    <p className="text-2xl font-bold text-green-900">{formatNumber(channel.delivered)}</p>
-                  </div>
-                  <div className="bg-red-50 rounded-lg p-4 text-center">
-                    <p className="text-sm text-red-600 font-medium mb-1">Failed</p>
-                    <p className="text-2xl font-bold text-red-900">{formatNumber(channel.failed)}</p>
-                  </div>
-                </div>
-
-                {/* Progress Bar */}
-                <div className="mt-4">
-                  <div className="h-4 bg-gray-200 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-green-500 transition-all duration-500"
-                      style={{ width: `${channel.successRate}%` }}
-                    ></div>
-                  </div>
-                </div>
+      {/* Status Distribution */}
+      <div className="grid gap-6 md:grid-cols-2">
+        {statusData.length > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Status Distribution</CardTitle>
+              <CardDescription>Breakdown of execution statuses</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-80">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={statusData}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      label={(entry) => `${entry.name}: ${entry.value}`}
+                      outerRadius={100}
+                      fill="#8884d8"
+                      dataKey="value"
+                    >
+                      {statusData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Performance Metrics</CardTitle>
+            <CardDescription>Detailed delivery statistics</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <span className="text-sm font-medium">Sent</span>
+                </div>
+                <span className="text-lg font-bold">{formatNumber(metrics.sent)}</span>
+              </div>
+
+              <div className="flex items-center justify-between pb-2 border-b">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                  <span className="text-sm font-medium">Delivered</span>
+                </div>
+                <span className="text-lg font-bold text-green-600">{formatNumber(metrics.delivered)}</span>
+              </div>
+
+              <div className="flex items-center justify-between pb-2 border-b">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <span className="text-sm font-medium">Failed</span>
+                </div>
+                <span className="text-lg font-bold text-red-600">{formatNumber(metrics.failed)}</span>
+              </div>
+
+              <div className="flex items-center justify-between pb-2 border-b">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                  <span className="text-sm font-medium">Bounced</span>
+                </div>
+                <span className="text-lg font-bold text-orange-600">{formatNumber(metrics.bounced)}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Delivery Rate</span>
+                <span className="text-sm font-semibold text-green-600">
+                  {formatPercentage(metrics.delivery_rate)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Failure Rate</span>
+                <span className="text-sm font-semibold text-red-600">
+                  {formatPercentage(metrics.failure_rate)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-gray-600">Bounce Rate</span>
+                <span className="text-sm font-semibold text-orange-600">
+                  {formatPercentage(metrics.bounce_rate)}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Summary Card */}
       <Card className="bg-gradient-to-r from-purple-50 to-blue-50">
         <CardContent className="py-6">
           <div className="text-center">
             <p className="text-sm text-gray-600 mb-2">Reporting Period</p>
-            <p className="text-xl font-semibold text-gray-900">{metrics.period || 'All Time'}</p>
+            <p className="text-lg font-semibold text-gray-900">
+              {new Date(metrics.start_date).toLocaleDateString()} - {new Date(metrics.end_date).toLocaleDateString()}
+            </p>
             <p className="text-sm text-gray-500 mt-4">
               Data refreshes automatically every 30 seconds
             </p>

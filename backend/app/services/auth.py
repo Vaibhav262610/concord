@@ -28,14 +28,18 @@ def generate_api_key() -> str:
 def hash_api_key(api_key: str) -> str:
     """Hash an API key for secure storage"""
     # Use bcrypt directly instead of passlib
+    # Truncate to 72 bytes to avoid bcrypt limit
+    api_key_bytes = api_key.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
-    return bcrypt.hashpw(api_key.encode('utf-8'), salt).decode('utf-8')
+    return bcrypt.hashpw(api_key_bytes, salt).decode('utf-8')
 
 
 def verify_api_key(plain_key: str, hashed_key: str) -> bool:
     """Verify an API key against its hash"""
     try:
-        return bcrypt.checkpw(plain_key.encode('utf-8'), hashed_key.encode('utf-8'))
+        # Truncate to 72 bytes to match hashing behavior
+        plain_key_bytes = plain_key.encode('utf-8')[:72]
+        return bcrypt.checkpw(plain_key_bytes, hashed_key.encode('utf-8'))
     except Exception:
         return False
 

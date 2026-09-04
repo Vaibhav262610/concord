@@ -207,13 +207,11 @@ async def get_delivery_status(
     response_model=DeliveryMetricsResponse,
     responses={
         200: {"description": "Delivery metrics"},
-        401: {"model": ErrorResponse, "description": "Authentication failed"},
     }
 )
 async def get_delivery_metrics(
     days: int = Query(7, ge=1, le=90, description="Number of days to analyze"),
     channel: Optional[str] = Query(None, description="Filter by channel"),
-    agent: Agent = Depends(get_current_agent),
     db: Session = Depends(get_db)
 ):
     """

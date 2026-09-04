@@ -12,9 +12,11 @@ import logging
 from app.database import get_db
 from app.services.simulation import ScenarioFactory, AgentFleet
 from app.services.gateway import GatewayService
+from app.services.auth import generate_api_key, hash_api_key
 from app.models.agent import Agent
 from app.models.customer import Customer
 from app.models.merchant import Merchant
+from app.schemas.agent_request import AgentActionRequest
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -115,9 +117,7 @@ async def run_simulation(
     merchant = db.query(Merchant).filter(Merchant.name == "Simulation Merchant").first()
     if not merchant:
         merchant = Merchant(
-            name="Simulation Merchant",
-            webhook_url="http://simulation/webhook",
-            is_active=True
+            name="Simulation Merchant"
         )
         db.add(merchant)
         db.commit()
@@ -130,10 +130,15 @@ async def run_simulation(
     ).first()
     
     if not agent:
+        # Generate API key for simulation agent
+        api_key = generate_api_key()
+        api_key_hash = hash_api_key(api_key)
+        
         agent = Agent(
             merchant_id=merchant.id,
             name="Simulation Agent",
             agent_type="simulation",
+            api_key_hash=api_key_hash,
             permissions={
                 "messaging": True,
                 "discounts": True,
@@ -151,16 +156,18 @@ async def run_simulation(
     # Create customers if requested
     if request.create_customers:
         for customer_id in customer_ids:
-            existing = db.query(Customer).filter(Customer.customer_id == customer_id).first()
+            existing = db.query(Customer).filter(Customer.external_id == customer_id).first()
             if not existing:
                 customer = Customer(
                     merchant_id=merchant.id,
-                    customer_id=customer_id,
+                    external_id=customer_id,
                     email=f"{customer_id.lower()}@simulation.test",
                     phone=f"+91900000{customer_id[-4:]}",
-                    consent_marketing=True,
-                    consent_transactional=True,
-                    is_active=True
+                    consent={
+                        "marketing": True,
+                        "transactional": True,
+                        "global_opt_out": False
+                    }
                 )
                 db.add(customer)
         db.commit()
@@ -197,10 +204,13 @@ async def run_simulation(
             time.sleep(actual_delay - elapsed)
         
         try:
+            # Convert dict to AgentActionRequest object
+            action_request = AgentActionRequest(**sim_request)
+            
             # Process request through gateway
             agent_request, is_duplicate, decision, execution_result = gateway.process_action_request(
                 agent,
-                sim_request
+                action_request
             )
             
             # Record results
