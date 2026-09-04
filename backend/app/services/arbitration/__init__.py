@@ -10,6 +10,8 @@ from app.services.arbitration.business_value import BusinessValueEngine
 from app.services.arbitration.policy import PolicyEngine
 from app.services.arbitration.offer_validator import OfferValidator, OfferValidationError
 from app.services.arbitration.decision_engine import DecisionEngine, DecisionType, BlockReason
+from app.services.arbitration.conflict_detector import ConflictDetector, ConflictType, ConflictSeverity
+from app.services.arbitration.merge_engine import MergeEngine, MergeStrategy
 
 __all__ = [
     "CustomerState",
@@ -26,4 +28,9 @@ __all__ = [
     "DecisionEngine",
     "DecisionType",
     "BlockReason",
+    "ConflictDetector",
+    "ConflictType",
+    "ConflictSeverity",
+    "MergeEngine",
+    "MergeStrategy",
 ]

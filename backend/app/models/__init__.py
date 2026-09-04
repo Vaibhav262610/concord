@@ -11,6 +11,7 @@ from app.models.decision import Decision
 from app.models.customer_contact import CustomerContact
 from app.models.audit_log import AuditLog
 from app.models.delayed_action import DelayedAction
+from app.models.conflict import Conflict
 
 __all__ = [
     "Merchant",
@@ -22,4 +23,5 @@ __all__ = [
     "CustomerContact",
     "AuditLog",
     "DelayedAction",
+    "Conflict",
 ]

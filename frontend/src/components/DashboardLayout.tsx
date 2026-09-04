@@ -13,6 +13,7 @@ import {
   Settings,
   Menu,
   X,
+  Zap,
 } from 'lucide-react';
 
 interface NavItem {
@@ -46,6 +47,11 @@ const navItems: NavItem[] = [
     href: '/dashboard/metrics',
     label: 'Metrics',
     icon: <BarChart3 className="w-5 h-5" />,
+  },
+  {
+    href: '/dashboard/simulation',
+    label: 'Simulation',
+    icon: <Zap className="w-5 h-5" />,
   },
   {
     href: '/dashboard/actions',

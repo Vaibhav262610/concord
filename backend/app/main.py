@@ -99,13 +99,15 @@ async def global_exception_handler(request, exc):
 
 
 # Import and include routers
-from app.routes import actions, agents, decisions, executions, webhooks
+from app.routes import actions, agents, decisions, executions, webhooks, conflicts, simulation
 
 app.include_router(actions.router, prefix="/api/v1", tags=["actions"])
 app.include_router(agents.router, prefix="/api/v1", tags=["agents"])
 app.include_router(decisions.router, prefix="/api/v1", tags=["decisions"])
 app.include_router(executions.router, prefix="/api/v1", tags=["executions"])
 app.include_router(webhooks.router, prefix="/api/v1", tags=["webhooks"])
+app.include_router(conflicts.router, prefix="/api/v1", tags=["conflicts"])
+app.include_router(simulation.router, prefix="/api/v1", tags=["simulation"])
 
 
 if __name__ == "__main__":

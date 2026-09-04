@@ -37,6 +37,13 @@ from app.schemas.execution import (
     DeliveryMetricsResponse,
     WebhookPayload,
 )
+from app.schemas.conflict import (
+    ConflictResponse,
+    ConflictListResponse,
+    MergeRecommendationResponse,
+    MergeRequest,
+    MergeResult,
+)
 
 __all__ = [
     "AgentActionRequest",
@@ -64,4 +71,9 @@ __all__ = [
     "ExecutionListResponse",
     "DeliveryMetricsResponse",
     "WebhookPayload",
+    "ConflictResponse",
+    "ConflictListResponse",
+    "MergeRecommendationResponse",
+    "MergeRequest",
+    "MergeResult",
 ]

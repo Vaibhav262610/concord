@@ -17,6 +17,8 @@ from app.services.arbitration.priority import PriorityEngine
 from app.services.arbitration.business_value import BusinessValueEngine
 from app.services.arbitration.policy import PolicyEngine
 from app.services.arbitration.offer_validator import OfferValidator
+from app.services.arbitration.conflict_detector import ConflictDetector
+from app.services.arbitration.merge_engine import MergeEngine
 
 
 class DecisionType(str, Enum):
@@ -24,6 +26,7 @@ class DecisionType(str, Enum):
     ALLOW = "ALLOW"
     BLOCK = "BLOCK"
     DELAY = "DELAY"
+    MERGE = "MERGE"  # New: Merge with conflicting requests
 
 
 class BlockReason(str, Enum):
@@ -39,6 +42,7 @@ class BlockReason(str, Enum):
     CHANNEL_NOT_ALLOWED = "channel_not_allowed"
     INTENT_NOT_ALLOWED = "intent_not_allowed"
     EXPIRED = "request_expired"
+    CONFLICT_DETECTED = "conflict_detected"  # New: Conflict with other requests
 
 
 class DecisionEngine:
@@ -53,6 +57,8 @@ class DecisionEngine:
         self.value_engine = BusinessValueEngine()
         self.policy_engine = PolicyEngine(db)
         self.offer_validator = OfferValidator()
+        self.conflict_detector = ConflictDetector(db)
+        self.merge_engine = MergeEngine(db)
     
     def make_decision(
         self,
@@ -91,6 +97,45 @@ class DecisionEngine:
             daily_limit=policy_rules["daily_limit"]
         )
         decision_details["customer_state"] = customer_state.to_dict()
+        
+        # Step 2.5: Check for conflicts with other agents
+        conflict = self.conflict_detector.detect_conflicts(
+            agent_request.customer_id,
+            agent_request,
+            time_window_minutes=15
+        )
+        
+        if conflict:
+            # Conflict detected - attempt to merge
+            decision_details["conflict"] = {
+                "id": str(conflict.id),
+                "type": conflict.conflict_type,
+                "severity": conflict.severity,
+                "conflicting_request_count": len(conflict.request_ids),
+                "detected_at": conflict.detected_at.isoformat()
+            }
+            
+            # Critical conflicts should be merged immediately
+            if conflict.severity in ["CRITICAL", "HIGH"]:
+                decision_details["decision"] = DecisionType.MERGE
+                decision_details["message"] = f"Request requires merging due to {conflict.conflict_type} conflict"
+                decision_details["merge_details"] = {
+                    "conflict_id": str(conflict.id),
+                    "severity": conflict.severity,
+                    "conflicting_requests": conflict.request_ids
+                }
+                
+                # Get merge recommendation
+                merge_rec = self.merge_engine.get_merge_recommendation(conflict)
+                decision_details["merge_recommendation"] = merge_rec
+                
+                return (DecisionType.MERGE, decision_details)
+            
+            # Medium/Low severity: Log but continue evaluation
+            decision_details["warnings"] = decision_details.get("warnings", [])
+            decision_details["warnings"].append(
+                f"{conflict.severity} conflict detected: {conflict.conflict_type}"
+            )
         
         # Step 3: Check if request is expired
         if agent_request.expires_at and datetime.now() > agent_request.expires_at:
