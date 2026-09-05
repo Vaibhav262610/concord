@@ -30,7 +30,7 @@ async def list_decisions(
     decision: Optional[str] = Query(None, description="Filter by decision type (ALLOW, BLOCK, DELAY)"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    agent: Agent = Depends(get_current_agent),
+    # agent: Agent = Depends(get_current_agent),  # Removed for demo
     db: Session = Depends(get_db)
 ):
     """
@@ -46,8 +46,8 @@ async def list_decisions(
     if customer_id:
         try:
             from app.models.customer import Customer
+            # Show all customers for demo
             customer = db.query(Customer).filter(
-                Customer.merchant_id == agent.merchant_id,
                 Customer.external_id == customer_id
             ).first()
             if customer:

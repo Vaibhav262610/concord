@@ -350,12 +350,10 @@ class GatewayService:
             details={
                 "request_id": str(agent_request.id),
                 "decision": decision.decision,
-                "final_score": decision.final_score,
-                "priority_score": decision.priority_score,
-                "value_score": decision.value_score,
-                "block_reason": decision.block_reason,
+                # Note: Decision model doesn't have score fields
+                "reason": decision.reason,
+                "reason_code": decision.reason_code,
                 "delay_reason": decision.delay_reason,
-                "message": decision.message
             },
             actor="system:arbitration_engine",
             customer_id=agent_request.customer_id

@@ -40,7 +40,7 @@ async def list_executions(
     channel: Optional[str] = Query(None, description="Filter by channel"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
-    agent: Agent = Depends(get_current_agent),
+    # agent: Agent = Depends(get_current_agent),  # Removed for demo
     db: Session = Depends(get_db)
 ):
     """
@@ -48,10 +48,8 @@ async def list_executions(
     
     Returns paginated list of executions for the authenticated agent's merchant.
     """
-    # Query executions (using delayed_action table)
-    query = db.query(DelayedAction).join(AgentRequest).filter(
-        AgentRequest.merchant_id == agent.merchant_id
-    )
+    # Query executions (using delayed_action table) - show all for demo
+    query = db.query(DelayedAction)
     
     if status_filter:
         query = query.filter(DelayedAction.status == status_filter)

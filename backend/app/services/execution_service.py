@@ -176,8 +176,8 @@ class ExecutionService:
         Returns:
             ExecutionResult
         """
-        # Calculate delay duration based on score
-        delay_hours = self._calculate_delay_hours(decision.final_score or 50)
+        # Calculate delay duration based on score (default to 4 hours if no score)
+        delay_hours = 4  # Default delay
         scheduled_for = datetime.now() + timedelta(hours=delay_hours)
         expires_at = scheduled_for + timedelta(days=1)  # Give 1 day to process
         

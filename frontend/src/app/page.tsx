@@ -20,7 +20,7 @@ export default function Home() {
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
           <Link href="/dashboard">
-            <Button size="lg" className="text-lg px-8 py-6">
+            <Button size="lg" className="text-lg text-white px-8 py-6">
               Open Dashboard
               <ArrowRight className="ml-2 w-5 h-5" />
             </Button>

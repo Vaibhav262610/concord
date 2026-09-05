@@ -37,6 +37,12 @@ class DecisionService:
         Returns:
             Created Decision record
         """
+        # Get the agent request to extract customer_id
+        from app.models.agent_request import AgentRequest
+        agent_request = self.db.query(AgentRequest).filter(AgentRequest.id == request_id).first()
+        if not agent_request:
+            raise ValueError(f"Agent request {request_id} not found")
+        
         # Extract key fields
         final_score = decision_details.get("final_score")
         
@@ -53,15 +59,18 @@ class DecisionService:
         
         decision = Decision(
             request_id=request_id,
+            customer_id=agent_request.customer_id,  # Get from agent_request
             decision=decision_type.value,
-            final_score=final_score,
-            priority_score=priority_score,
-            value_score=value_score,
-            block_reason=block_reason,
+            # Removed: final_score, priority_score, value_score (not in model)
+            reason_code=decision_details.get("reason_code", "UNKNOWN"),
+            reason=message if message else "Decision processed",
+            # block_reason, delay_reason removed (not in this model)
+            policy_ids=decision_details.get("policy_ids", []),
+            conflicting_requests=decision_details.get("conflicting_requests", []),
+            merged_with=decision_details.get("merged_with"),
+            merged_message=decision_details.get("merged_message"),
+            scheduled_at=decision_details.get("scheduled_at"),
             delay_reason=delay_reason,
-            message=message,
-            warnings=warnings,
-            details=decision_details  # Store full details as JSON
         )
         
         self.db.add(decision)
@@ -121,33 +130,24 @@ class DecisionService:
             id=decision.id,
             request_id=decision.request_id,
             decision=decision.decision,
-            final_score=decision.final_score,
-            priority_score=decision.priority_score,
-            value_score=decision.value_score,
-            block_reason=decision.block_reason,
+            # Note: Decision model doesn't have these fields
+            reason=decision.reason,
+            reason_code=decision.reason_code,
             delay_reason=decision.delay_reason,
-            message=decision.message,
-            warnings=decision.warnings,
             created_at=decision.created_at
         )
     
     def to_detail(self, decision: Decision) -> DecisionDetail:
         """Convert Decision model to detailed schema"""
-        details = decision.details or {}
         
         return DecisionDetail(
             id=decision.id,
             request_id=decision.request_id,
             decision=decision.decision,
-            final_score=decision.final_score,
-            message=decision.message,
-            block_reason=decision.block_reason,
+            # Note: Decision model doesn't have score fields
+            reason=decision.reason,
+            reason_code=decision.reason_code,
             delay_reason=decision.delay_reason,
-            warnings=decision.warnings,
-            customer_state=details.get("customer_state", {}),
-            policy_rules=details.get("policy_rules", {}),
-            checks=details.get("checks", {}),
-            score_weights=details.get("score_weights"),
             created_at=decision.created_at
         )
     

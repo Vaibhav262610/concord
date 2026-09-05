@@ -148,7 +148,7 @@ class DecisionEngine:
         consent_decision, consent_reason = self.consent_engine.check_consent(
             customer_state,
             agent_request.intent,
-            agent_request.action
+            agent_request.action_type  # Fixed: use action_type instead of action
         )
         decision_details["checks"]["consent"] = self.consent_engine.to_dict(
             consent_decision, consent_reason

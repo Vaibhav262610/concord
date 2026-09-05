@@ -232,7 +232,7 @@ async def run_simulation(
                     "customer_id": customer_id,
                     "intent": intent,
                     "decision": decision_type,
-                    "score": decision.final_score if decision else 0,
+                    "score": 0,  # Decision model doesn't have final_score
                 })
         
         except Exception as e:
